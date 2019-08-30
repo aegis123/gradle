@@ -17,13 +17,14 @@
 package org.gradle.api.tasks
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
-import org.gradle.process.internal.util.LongCommandLineDetectionUtil
 import org.gradle.test.fixtures.file.TestFile
 import org.gradle.util.Requires
 import org.gradle.util.TestPrecondition
 import org.hamcrest.core.IsNot
 import org.hamcrest.core.StringEndsWith
 import spock.lang.Issue
+
+import static org.gradle.process.internal.util.LongCommandLineDetectionUtil.ARG_MAX_WINDOWS
 
 class JavaExecIntegrationTest extends AbstractIntegrationSpec {
 
@@ -239,7 +240,7 @@ class JavaExecIntegrationTest extends AbstractIntegrationSpec {
     @Requires(TestPrecondition.NOT_WINDOWS)
     def "does not suggest long command line failures when execution fails on non-Windows system"() {
         buildFile << """
-            run.classpath += project.files('${'a'.repeat(LongCommandLineDetectionUtil.ARG_MAX_WINDOWS)}')
+            run.classpath += project.files('${'a'.repeat(ARG_MAX_WINDOWS)}')
             run.executable 'some-java'
         """
 
@@ -252,7 +253,7 @@ class JavaExecIntegrationTest extends AbstractIntegrationSpec {
 
     @Requires(TestPrecondition.WINDOWS)
     def "can suggest long command line failures when execution fails for long command line"() {
-        def fileName = 'a'.repeat(LongCommandLineDetectionUtil.ARG_MAX_WINDOWS)
+        def fileName = 'a'.repeat(ARG_MAX_WINDOWS)
         buildFile << """
             run.classpath += project.files('${fileName}')
         """
@@ -276,18 +277,33 @@ class JavaExecIntegrationTest extends AbstractIntegrationSpec {
         failure.assertThatCause(IsNot.not(StringEndsWith.endsWith("Gradle detected the command line may be too long which could be causing the failures.")))
     }
 
-    def "show deprecation warning when CLASSPATH is used in conjunction with the command line flag counter part"() {
+    @Requires(TestPrecondition.WINDOWS)
+    def "does not fail for long command line with classpath that fit inside environment variable"() {
+        def fileName = 'a'.repeat(ARG_MAX_WINDOWS / 2 as int)
         buildFile << """
-            run.environment('CLASSPATH', 'some-file.jar')
+            run.classpath += project.files('${fileName}')
+            run.args '${fileName}'
         """
 
         when:
-        executer.expectDeprecationWarning()
         succeeds("run")
 
         then:
         executedAndNotSkipped(":run")
-        outputContains("Specifying a classpath through the 'CLASSPATH' environment variable as well as the `-classpath` command line flag has been deprecated. This is scheduled to be removed in Gradle 7.0. Ensure the classpath is only passed through classpath(FileCollection) or setClasspath(FileCollection).")
+    }
+
+    @Requires(TestPrecondition.WINDOWS)
+    def "fails for long command line with classpath that does not fit inside environment variable"() {
+        def fileName = 'a'.repeat((ARG_MAX_WINDOWS / 2) * 3 as int)
+        buildFile << """
+            run.classpath += project.files('${fileName}')
+        """
+
+        when:
+        def failure = fails("run")
+
+        then:
+        failure.assertThatCause(StringEndsWith.endsWith("Gradle detected the command line may be too long which could be causing the failures."))
     }
 
     private void assertOutputFileIs(String text) {

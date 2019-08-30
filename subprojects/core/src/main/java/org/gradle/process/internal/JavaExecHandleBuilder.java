@@ -38,6 +38,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
+import static org.gradle.process.internal.util.LongCommandLineDetectionUtil.hasCommandLineExceedMaxLength;
+import static org.gradle.process.internal.util.LongCommandLineDetectionUtil.hasEnvironmentVariableExceedMaxLength;
+
 /**
  * Use {@link JavaExecHandleFactory} instead.
  */
@@ -68,9 +71,6 @@ public class JavaExecHandleBuilder extends AbstractExecHandleBuilder implements 
             }
         } else {
             if (classpath != null && !classpath.isEmpty()) {
-                if (getEnvironment().containsKey("CLASSPATH")) {
-                    DeprecationLogger.nagUserOfDeprecated("Specifying a classpath through the 'CLASSPATH' environment variable as well as the `-classpath` command line flag", "Ensure the classpath is only passed through classpath(FileCollection) or setClasspath(FileCollection).");
-                }
                 allArgs.add("-cp");
                 allArgs.add(CollectionUtils.join(File.pathSeparator, classpath));
             }
@@ -299,6 +299,28 @@ public class JavaExecHandleBuilder extends AbstractExecHandleBuilder implements 
         for (CommandLineArgumentProvider argumentProvider : argumentProviders) {
             Iterables.addAll(arguments, argumentProvider.asArguments());
         }
+        return arguments;
+    }
+
+    @Override
+    protected List<String> getEffectiveArgumentList() {
+        List<String> arguments = new ArrayList<String>(getAllJvmArgs());
+        arguments.addAll(getArgs());
+        for (CommandLineArgumentProvider argumentProvider : argumentProviders) {
+            Iterables.addAll(arguments, argumentProvider.asArguments());
+        }
+
+        if (hasCommandLineExceedMaxLength(getExecutable(), arguments)) {
+            int classpathFlagIndex = arguments.indexOf("-cp");
+            if (classpathFlagIndex != -1) {
+                if (!hasEnvironmentVariableExceedMaxLength(arguments.get(classpathFlagIndex + 1))) {
+                    environment("CLASSPATH", arguments.get(classpathFlagIndex + 1));
+                    arguments.remove(classpathFlagIndex);
+                    arguments.remove(classpathFlagIndex);
+                }
+            }
+        }
+
         return arguments;
     }
 

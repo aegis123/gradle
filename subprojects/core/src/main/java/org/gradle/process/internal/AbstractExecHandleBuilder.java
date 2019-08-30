@@ -57,6 +57,10 @@ public abstract class AbstractExecHandleBuilder extends DefaultProcessForkOption
 
     public abstract List<String> getAllArguments();
 
+    protected List<String> getEffectiveArgumentList() {
+        return getAllArguments();
+    }
+
     @Override
     public List<String> getCommandLine() {
         List<String> commandLine = new ArrayList<String>();
@@ -141,7 +145,7 @@ public abstract class AbstractExecHandleBuilder extends DefaultProcessForkOption
         }
 
         StreamsHandler effectiveOutputHandler = getEffectiveStreamsHandler();
-        return new DefaultExecHandle(getDisplayName(), getWorkingDir(), executable, getAllArguments(), getActualEnvironment(),
+        return new DefaultExecHandle(getDisplayName(), getWorkingDir(), executable, getEffectiveArgumentList(), getActualEnvironment(),
                 effectiveOutputHandler, inputHandler, listeners, redirectErrorStream, timeoutMillis, daemon, executor, buildCancellationToken);
     }
 

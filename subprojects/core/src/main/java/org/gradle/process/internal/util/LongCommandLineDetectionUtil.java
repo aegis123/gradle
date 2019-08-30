@@ -23,6 +23,7 @@ import java.util.List;
 public class LongCommandLineDetectionUtil {
     // See http://msdn.microsoft.com/en-us/library/windows/desktop/ms682425(v=vs.85).aspx
     public static final int ARG_MAX_WINDOWS = 32767; // in chars
+    public static final int ENVIRONMENT_VARIABLE_MAX_STRING_LENGTH = 32767; // in chars
 
     private static int getMaxCommandLineLength() {
         if (OperatingSystem.current().isWindows()) {
@@ -34,5 +35,16 @@ public class LongCommandLineDetectionUtil {
     public static boolean hasCommandLineExceedMaxLength(String command, List<String> arguments) {
         int commandLineLength = command.length() + arguments.stream().map(String::length).reduce(Integer::sum).orElse(0) + arguments.size();
         return commandLineLength > getMaxCommandLineLength();
+    }
+
+    private static int getMaxEnvironmentVariableLength() {
+        if (OperatingSystem.current().isWindows()) {
+            return ENVIRONMENT_VARIABLE_MAX_STRING_LENGTH;
+        }
+        return Integer.MAX_VALUE;
+    }
+
+    public static boolean hasEnvironmentVariableExceedMaxLength(String value) {
+        return value.length() > getMaxCommandLineLength();
     }
 }
