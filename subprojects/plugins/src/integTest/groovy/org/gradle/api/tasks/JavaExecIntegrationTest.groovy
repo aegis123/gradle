@@ -276,6 +276,20 @@ class JavaExecIntegrationTest extends AbstractIntegrationSpec {
         failure.assertThatCause(IsNot.not(StringEndsWith.endsWith("Gradle detected the command line may be too long which could be causing the failures.")))
     }
 
+    def "show deprecation warning when CLASSPATH is used in conjunction with the command line flag counter part"() {
+        buildFile << """
+            run.environment('CLASSPATH', 'some-file.jar')
+        """
+
+        when:
+        executer.expectDeprecationWarning()
+        succeeds("run")
+
+        then:
+        executedAndNotSkipped(":run")
+        outputContains("Specifying a classpath through the 'CLASSPATH' environment variable as well as the `-classpath` command line flag has been deprecated. This is scheduled to be removed in Gradle 7.0. Ensure the classpath is only passed through classpath(FileCollection) or setClasspath(FileCollection).")
+    }
+
     private void assertOutputFileIs(String text) {
         assert file("out.txt").text == text
     }

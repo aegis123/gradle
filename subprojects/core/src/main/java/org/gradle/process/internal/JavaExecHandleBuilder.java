@@ -27,6 +27,7 @@ import org.gradle.process.JavaDebugOptions;
 import org.gradle.process.JavaExecSpec;
 import org.gradle.process.JavaForkOptions;
 import org.gradle.util.CollectionUtils;
+import org.gradle.util.DeprecationLogger;
 import org.gradle.util.GUtil;
 
 import javax.annotation.Nonnull;
@@ -67,6 +68,9 @@ public class JavaExecHandleBuilder extends AbstractExecHandleBuilder implements 
             }
         } else {
             if (classpath != null && !classpath.isEmpty()) {
+                if (getEnvironment().containsKey("CLASSPATH")) {
+                    DeprecationLogger.nagUserOfDeprecated("Specifying a classpath through the 'CLASSPATH' environment variable as well as the `-classpath` command line flag", "Ensure the classpath is only passed through classpath(FileCollection) or setClasspath(FileCollection).");
+                }
                 allArgs.add("-cp");
                 allArgs.add(CollectionUtils.join(File.pathSeparator, classpath));
             }
