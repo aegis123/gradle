@@ -724,6 +724,10 @@ Many popular annotation processors support incremental annotation processing (se
 | link:https://github.com/facebook/litho/issues/482[Open issue]
 | N/A
 
+| Moshi
+| link:https://github.com/square/moshi/issues/589[Open issue]
+| N/A
+
 | Moxy
 | link:https://github.com/Arello-Mobile/Moxy/issues/240[Open issue]
 | N/A
